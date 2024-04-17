@@ -7,7 +7,7 @@ from typing import List
 
 import config
 
-from .weibo_store_db_types import *
+from .weibo_store_image import *
 from .weibo_store_impl import *
 
 
@@ -15,7 +15,7 @@ class WeibostoreFactory:
     STORES = {
         "csv": WeiboCsvStoreImplement,
         "db": WeiboDbStoreImplement,
-        "json": WeiboJsonStoreImplement
+        "json": WeiboJsonStoreImplement,
     }
 
     @staticmethod
@@ -25,6 +25,7 @@ class WeibostoreFactory:
             raise ValueError(
                 "[WeibotoreFactory.create_store] Invalid save option only supported csv or db or json ...")
         return store_class()
+
 
 async def update_weibo_note(note_item: Dict):
     mblog: Dict = note_item.get("mblog")
@@ -84,5 +85,8 @@ async def update_weibo_note_comment(note_id: str, comment_item: Dict):
         "avatar": user_info.get("profile_image_url", ""),
     }
     utils.logger.info(
-        f"[store.weibo.update_weibo_note_comment] Weibo note comment: {comment_id}, content: {save_comment_item.get('content','')[:24]} ...")
+        f"[store.weibo.update_weibo_note_comment] Weibo note comment: {comment_id}, content: {save_comment_item.get('content', '')[:24]} ...")
     await WeibostoreFactory.create_store().store_comment(comment_item=save_comment_item)
+
+async def update_weibo_note_image(picid: str, pic_content, extension_file_name):
+    await WeiboStoreImage().store_image({"pic_id": picid, "pic_content": pic_content, "extension_file_name": extension_file_name})

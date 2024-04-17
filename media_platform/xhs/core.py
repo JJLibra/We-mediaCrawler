@@ -14,10 +14,10 @@ from store import xhs as xhs_store
 from tools import utils
 from var import crawler_type_var
 
-from .client import XHSClient
+from .client import XiaoHongShuClient
 from .exception import DataFetchError
 from .field import SearchSortType
-from .login import XHSLogin
+from .login import XiaoHongShuLogin
 
 
 class XiaoHongShuCrawler(AbstractCrawler):
@@ -25,17 +25,19 @@ class XiaoHongShuCrawler(AbstractCrawler):
     login_type: str
     crawler_type: str
     context_page: Page
-    xhs_client: XHSClient
+    xhs_client: XiaoHongShuClient
     browser_context: BrowserContext
 
     def __init__(self) -> None:
         self.index_url = "https://www.xiaohongshu.com"
         self.user_agent = utils.get_user_agent()
 
-    def init_config(self, platform: str, login_type: str, crawler_type: str) -> None:
+    def init_config(self, platform: str, login_type: str, crawler_type: str, start_page: int, keyword: str) -> None:
         self.platform = platform
         self.login_type = login_type
         self.crawler_type = crawler_type
+        self.start_page = start_page
+        self.keyword = keyword
 
     async def start(self) -> None:
         playwright_proxy_format, httpx_proxy_format = None, None
@@ -68,7 +70,7 @@ class XiaoHongShuCrawler(AbstractCrawler):
             # Create a client to interact with the xiaohongshu website.
             self.xhs_client = await self.create_xhs_client(httpx_proxy_format)
             if not await self.xhs_client.pong():
-                login_obj = XHSLogin(
+                login_obj = XiaoHongShuLogin(
                     login_type=self.login_type,
                     login_phone="",  # input your phone number
                     browser_context=self.browser_context,
@@ -97,31 +99,43 @@ class XiaoHongShuCrawler(AbstractCrawler):
         """Search for notes and retrieve their comment information."""
         utils.logger.info("[XiaoHongShuCrawler.search] Begin search xiaohongshu keywords")
         xhs_limit_count = 20  # xhs limit page fixed value
-        for keyword in config.KEYWORDS.split(","):
+        if config.CRAWLER_MAX_NOTES_COUNT < xhs_limit_count:
+            config.CRAWLER_MAX_NOTES_COUNT = xhs_limit_count
+        start_page = self.start_page
+        for keyword in self.keyword.split(","):
             utils.logger.info(f"[XiaoHongShuCrawler.search] Current search keyword: {keyword}")
             page = 1
-            while page * xhs_limit_count <= config.CRAWLER_MAX_NOTES_COUNT:
-                note_id_list: List[str] = []
-                notes_res = await self.xhs_client.get_note_by_keyword(
-                    keyword=keyword,
-                    page=page,
-                    sort=SearchSortType(config.SORT_TYPE) if config.SORT_TYPE != '' else SearchSortType.GENERAL,
-                )
-                utils.logger.info(f"[XiaoHongShuCrawler.search] Search notes res:{notes_res}")
-                semaphore = asyncio.Semaphore(config.MAX_CONCURRENCY_NUM)
-                task_list = [
-                    self.get_note_detail(post_item.get("id"), semaphore)
-                    for post_item in notes_res.get("items", {})
-                    if post_item.get('model_type') not in ('rec_query', 'hot_query')
-                ]
-                note_details = await asyncio.gather(*task_list)
-                for note_detail in note_details:
-                    if note_detail is not None:
-                        await xhs_store.update_xhs_note(note_detail)
-                        note_id_list.append(note_detail.get("note_id"))
-                page += 1
-                utils.logger.info(f"[XiaoHongShuCrawler.search] Note details: {note_details}")
-                await self.batch_get_note_comments(note_id_list)
+            while (page - start_page + 1) * xhs_limit_count <= config.CRAWLER_MAX_NOTES_COUNT:
+                if page < start_page:
+                    utils.logger.info(f"[XiaoHongShuCrawler.search] Skip page {page}")
+                    page += 1
+                    continue
+
+                try:
+                    note_id_list: List[str] = []
+                    notes_res = await self.xhs_client.get_note_by_keyword(
+                        keyword=keyword,
+                        page=page,
+                        sort=SearchSortType(config.SORT_TYPE) if config.SORT_TYPE != '' else SearchSortType.GENERAL,
+                    )
+                    utils.logger.info(f"[XiaoHongShuCrawler.search] Search notes res:{notes_res}")
+                    semaphore = asyncio.Semaphore(config.MAX_CONCURRENCY_NUM)
+                    task_list = [
+                        self.get_note_detail(post_item.get("id"), semaphore)
+                        for post_item in notes_res.get("items", {})
+                        if post_item.get('model_type') not in ('rec_query', 'hot_query')
+                    ]
+                    note_details = await asyncio.gather(*task_list)
+                    for note_detail in note_details:
+                        if note_detail is not None:
+                            await xhs_store.update_xhs_note(note_detail)
+                            note_id_list.append(note_detail.get("note_id"))
+                    page += 1
+                    utils.logger.info(f"[XiaoHongShuCrawler.search] Note details: {note_details}")
+                    await self.batch_get_note_comments(note_id_list)
+                except DataFetchError:
+                    utils.logger.error("[XiaoHongShuCrawler.search] Get note detail error")
+                    break
 
     async def get_creators_and_notes(self) -> None:
         """Get creator's notes and retrieve their comment information."""
@@ -219,11 +233,11 @@ class XiaoHongShuCrawler(AbstractCrawler):
         }
         return playwright_proxy, httpx_proxy
 
-    async def create_xhs_client(self, httpx_proxy: Optional[str]) -> XHSClient:
+    async def create_xhs_client(self, httpx_proxy: Optional[str]) -> XiaoHongShuClient:
         """Create xhs client"""
         utils.logger.info("[XiaoHongShuCrawler.create_xhs_client] Begin create xiaohongshu API client ...")
         cookie_str, cookie_dict = utils.convert_cookies(await self.browser_context.cookies())
-        xhs_client_obj = XHSClient(
+        xhs_client_obj = XiaoHongShuClient(
             proxies=httpx_proxy,
             headers={
                 "User-Agent": self.user_agent,
