@@ -10,34 +10,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: 检出当前仓库
     - name: Checkout this repo
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # 获取全部历史，以便于后续提交
+        fetch-depth: 0
 
-    # Step 2: 检出另一个仓库
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
+
     - name: Checkout other repo
       uses: actions/checkout@v4
       with:
         repository: 'NanmiCoder/MediaCrawler'
-        path: 'temp-repo'  # 临时存放NanmiCoder/MediaCrawler的源码
+        path: 'temp-repo'
+        ssh-key: ${{ secrets.DEPLOY_KEY }}
 
-    # Step 3: 确保src文件夹存在并复制文件
     - name: Copy files
       run: |
         mkdir -p src
-        rm -rf temp-repo/.git  # 删除嵌入的.git目录，避免将其视为子模块
+        rm -rf temp-repo/.git
         cp -a temp-repo/. src/
+
+    - name: Commit files
+      run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-
-    # Step 4: 添加和提交变更
-    - name: Commit files
-      env:
-        GITHUB_TOKEN: ${{ secrets.MC_TOKEN }}
-      run: |
         git add .
         git commit -m "Sync files from NanmiCoder/MediaCrawler to src directory" || echo "No changes to commit"
-        git push https://${{ secrets.MC_TOKEN }}@github.com/JJLibra/We-mediaCrawler.git
-        
+        git push git@github.com:JJLibra/We-mediaCrawler.git HEAD:main
+    
