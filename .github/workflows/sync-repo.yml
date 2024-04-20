@@ -37,7 +37,7 @@ jobs:
         rm -f temp-repo/LICENSE    # 删除 LICENSE 文件
         cp -a temp-repo/. src/
         ls -la  # 列出当前目录结构，以验证 temp-repo 的存在
-        rm -rf temp-repo src
+        rm -rf temp-repo
         ls -la  # 再次列出，确认 temp-repo 已被删除
 
     - name: Commit files
@@ -47,4 +47,11 @@ jobs:
         git add .
         git commit -m "Sync files from NanmiCoder/MediaCrawler to src directory" || echo "No changes to commit"
         git push git@github.com:JJLibra/We-mediaCrawler.git HEAD:main
+
+    - name: Clean up temp-repo
+      run: |
+        ls -la
+        rm -rf src
+        ls -la
+
 
