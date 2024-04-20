@@ -47,4 +47,6 @@ jobs:
 
     - name: Clean up temp-repo
       run: |
+        ls -la  # 列出当前目录结构，以验证 temp-repo 的存在
         rm -rf temp-repo
+        ls -la  # 再次列出，确认 temp-repo 已被删除
