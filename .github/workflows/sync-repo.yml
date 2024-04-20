@@ -38,3 +38,4 @@ jobs:
         git add .
         git commit -m "Sync files from NanmiCoder/MediaCrawler to src directory" || echo "No changes to commit"
         git push https://${{ secrets.MC_TOKEN }}@github.com/JJLibra/We-mediaCrawler.git
+        
