@@ -44,3 +44,7 @@ jobs:
         git add .
         git commit -m "Sync files from NanmiCoder/MediaCrawler to src directory" || echo "No changes to commit"
         git push git@github.com:JJLibra/We-mediaCrawler.git HEAD:main
+
+    - name: Clean up temp-repo
+      run: |
+        rm -rf temp-repo
