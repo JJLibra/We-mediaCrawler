@@ -26,8 +26,9 @@ jobs:
     # Step 3: 确保src文件夹存在并复制文件
     - name: Copy files
       run: |
-        mkdir -p src  # 确保src目录存在
-        cp -a temp-repo/. src/  # 将所有文件从临时目录复制到src目录
+        mkdir -p src
+        rm -rf temp-repo/.git  # 删除嵌入的.git目录，避免将其视为子模块
+        cp -a temp-repo/. src/
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
 
@@ -35,6 +36,5 @@ jobs:
     - name: Commit files
       run: |
         git add .
-        git commit -m "Sync files from other repository" || echo "No changes to commit"
-        git push
-
+        git commit -m "Sync files from NanmiCoder/MediaCrawler to src directory" || echo "No changes to commit"
+        git push https://${{ secrets.MC_TOKEN }}@github.com/JJLibra/We-mediaCrawler.git
