@@ -1,4 +1,4 @@
-name: Download and Commit Another Repo
+name: Copy
 
 on:
   workflow_dispatch:
@@ -33,6 +33,8 @@ jobs:
       run: |
         mkdir -p src
         rm -rf temp-repo/.git
+        rm -f temp-repo/README.md  # 删除 README.md 文件
+        rm -f temp-repo/LICENSE    # 删除 LICENSE 文件
         cp -a temp-repo/. src/
 
     - name: Commit files
@@ -42,4 +44,3 @@ jobs:
         git add .
         git commit -m "Sync files from NanmiCoder/MediaCrawler to src directory" || echo "No changes to commit"
         git push git@github.com:JJLibra/We-mediaCrawler.git HEAD:main
-    
