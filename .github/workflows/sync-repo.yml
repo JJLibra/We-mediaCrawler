@@ -1,0 +1,40 @@
+name: Download and Commit Another Repo
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'  # 每天执行一次
+
+jobs:
+  sync_repo:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: 检出当前仓库
+    - name: Checkout this repo
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 获取全部历史，以便于后续提交
+
+    # Step 2: 检出另一个仓库
+    - name: Checkout other repo
+      uses: actions/checkout@v4
+      with:
+        repository: 'NanmiCoder/MediaCrawler'
+        path: 'temp-repo'  # 临时存放NanmiCoder/MediaCrawler的源码
+
+    # Step 3: 确保src文件夹存在并复制文件
+    - name: Copy files
+      run: |
+        mkdir -p src  # 确保src目录存在
+        cp -a temp-repo/. src/  # 将所有文件从临时目录复制到src目录
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+    # Step 4: 添加和提交变更
+    - name: Commit files
+      run: |
+        git add .
+        git commit -m "Sync files from other repository" || echo "No changes to commit"
+        git push
+
