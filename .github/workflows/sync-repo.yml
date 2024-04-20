@@ -34,6 +34,8 @@ jobs:
 
     # Step 4: 添加和提交变更
     - name: Commit files
+      env:
+        GITHUB_TOKEN: ${{ secrets.MC_TOKEN }}
       run: |
         git add .
         git commit -m "Sync files from NanmiCoder/MediaCrawler to src directory" || echo "No changes to commit"
