@@ -42,7 +42,6 @@ jobs:
 
     - name: Commit files
       run: |
-        git config --global user.email "2565474095@qq.com"
         git config --local user.name "GitHub Action"
         git add .
         git commit -m "Sync files from NanmiCoder/MediaCrawler to src directory" || echo "No changes to commit"
