@@ -48,7 +48,7 @@ ENABLE_GET_IMAGES = False
 # 是否开启爬评论模式, 默认不开启爬评论
 ENABLE_GET_COMMENTS = False
 
-# 是否开启爬二级评论模式, 默认不开启爬二级评论, 目前仅支持 xhs, bilibili
+# 是否开启爬二级评论模式, 默认不开启爬二级评论
 # 老版本项目使用了 db, 则需参考 schema/tables.sql line 287 增加表字段
 ENABLE_GET_SUB_COMMENTS = False
 
@@ -57,6 +57,7 @@ XHS_SPECIFIED_ID_LIST = [
     "6422c2750000000027000d88",
     "64ca1b73000000000b028dd2",
     "630d5b85000000001203ab41",
+    "668fe13000000000030241fa", # 图文混合
     # ........................
 ]
 

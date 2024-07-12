@@ -129,6 +129,15 @@ class XiaoHongShuClient(AbstractApiClient):
         return await self.request(method="POST", url=f"{self._host}{uri}",
                                   data=json_str, headers=headers)
 
+    async def get_note_media(self, url: str) -> bytes | None:
+        async with httpx.AsyncClient(proxies=self.proxies) as client:
+            response = await client.request("GET", url, timeout=self.timeout)
+            if not response.reason_phrase == "OK":
+                utils.logger.error(f"[XiaoHongShuClient.get_note_media] request {url} err, res:{response.text}")
+                return None
+            else:
+                return response.content
+
     async def pong(self) -> bool:
         """
         用于检查登录态是否失效了
@@ -198,7 +207,12 @@ class XiaoHongShuClient(AbstractApiClient):
         Returns:
 
         """
-        data = {"source_note_id": note_id}
+        data = {
+            "source_note_id": note_id,
+            "image_formats": ["jpg", "webp", "avif"],
+            "extra": {"need_body_topic": 1},
+            "xsec_source": "pc_feed",
+        }
         uri = "/api/sns/web/v1/feed"
         res = await self.post(uri, data)
         if res and res.get("items"):
