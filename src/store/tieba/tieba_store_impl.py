@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# @Author  : relakkes@gmail.com
-# @Time    : 2024/1/14 20:03
-# @Desc    : 快手存储实现类
 import asyncio
 import csv
 import json
@@ -32,11 +29,8 @@ def calculate_number_of_files(file_store_path: str) -> int:
         return 1
 
 
-class KuaishouCsvStoreImplement(AbstractStore):
-    async def store_creator(self, creator: Dict):
-        pass
-
-    csv_store_path: str = "data/kuaishou"
+class TieBaCsvStoreImplement(AbstractStore):
+    csv_store_path: str = "data/tieba"
     file_count:int=calculate_number_of_files(csv_store_path)
 
     def make_save_file_name(self, store_type: str) -> str:
@@ -45,7 +39,7 @@ class KuaishouCsvStoreImplement(AbstractStore):
         Args:
             store_type: contents or comments
 
-        Returns: eg: data/douyin/search_comments_20240114.csv ...
+        Returns: eg: data/tieba/search_comments_20240114.csv ...
 
         """
         return f"{self.csv_store_path}/{self.file_count}_{crawler_type_var.get()}_{store_type}_{utils.get_current_date()}.csv"
@@ -63,6 +57,7 @@ class KuaishouCsvStoreImplement(AbstractStore):
         pathlib.Path(self.csv_store_path).mkdir(parents=True, exist_ok=True)
         save_file_name = self.make_save_file_name(store_type=store_type)
         async with aiofiles.open(save_file_name, mode='a+', encoding="utf-8-sig", newline="") as f:
+            f.fileno()
             writer = csv.writer(f)
             if await f.tell() == 0:
                 await writer.writerow(save_item.keys())
@@ -70,7 +65,7 @@ class KuaishouCsvStoreImplement(AbstractStore):
 
     async def store_content(self, content_item: Dict):
         """
-        Kuaishou content CSV storage implementation
+        Xiaohongshu content CSV storage implementation
         Args:
             content_item: note item dict
 
@@ -81,7 +76,7 @@ class KuaishouCsvStoreImplement(AbstractStore):
 
     async def store_comment(self, comment_item: Dict):
         """
-        Kuaishou comment CSV storage implementation
+        Xiaohongshu comment CSV storage implementation
         Args:
             comment_item: comment item dict
 
@@ -90,44 +85,51 @@ class KuaishouCsvStoreImplement(AbstractStore):
         """
         await self.save_data_to_csv(save_item=comment_item, store_type="comments")
 
-
-class KuaishouDbStoreImplement(AbstractStore):
     async def store_creator(self, creator: Dict):
-        pass
+        """
+        Xiaohongshu content CSV storage implementation
+        Args:
+            creator: creator dict
 
+        Returns:
+
+        """
+        await self.save_data_to_csv(save_item=creator, store_type="creator")
+
+
+class TieBaDbStoreImplement(AbstractStore):
     async def store_content(self, content_item: Dict):
         """
-        Kuaishou content DB storage implementation
+        Xiaohongshu content DB storage implementation
         Args:
             content_item: content item dict
 
         Returns:
 
         """
-
-        from .kuaishou_store_sql import (add_new_content,
-                                         query_content_by_content_id,
-                                         update_content_by_content_id)
-        video_id = content_item.get("video_id")
-        video_detail: Dict = await query_content_by_content_id(content_id=video_id)
-        if not video_detail:
+        from .tieba_store_sql import (add_new_content,
+                                      query_content_by_content_id,
+                                      update_content_by_content_id)
+        note_id = content_item.get("note_id")
+        note_detail: Dict = await query_content_by_content_id(content_id=note_id)
+        if not note_detail:
             content_item["add_ts"] = utils.get_current_timestamp()
             await add_new_content(content_item)
         else:
-            await update_content_by_content_id(video_id, content_item=content_item)
+            await update_content_by_content_id(note_id, content_item=content_item)
 
     async def store_comment(self, comment_item: Dict):
         """
-        Kuaishou content DB storage implementation
+        Xiaohongshu content DB storage implementation
         Args:
             comment_item: comment item dict
 
         Returns:
 
         """
-        from .kuaishou_store_sql import (add_new_comment,
-                                         query_comment_by_comment_id,
-                                         update_comment_by_comment_id)
+        from .tieba_store_sql import (add_new_comment,
+                                      query_comment_by_comment_id,
+                                      update_comment_by_comment_id)
         comment_id = comment_item.get("comment_id")
         comment_detail: Dict = await query_comment_by_comment_id(comment_id=comment_id)
         if not comment_detail:
@@ -136,15 +138,33 @@ class KuaishouDbStoreImplement(AbstractStore):
         else:
             await update_comment_by_comment_id(comment_id, comment_item=comment_item)
 
+    async def store_creator(self, creator: Dict):
+        """
+        Xiaohongshu content DB storage implementation
+        Args:
+            creator: creator dict
 
-class KuaishouJsonStoreImplement(AbstractStore):
-    json_store_path: str = "data/kuaishou/json"
-    words_store_path: str = "data/kuaishou/words"
+        Returns:
+
+        """
+        from .tieba_store_sql import (add_new_creator,
+                                      query_creator_by_user_id,
+                                      update_creator_by_user_id)
+        user_id = creator.get("user_id")
+        user_detail: Dict = await query_creator_by_user_id(user_id)
+        if not user_detail:
+            creator["add_ts"] = utils.get_current_timestamp()
+            await add_new_creator(creator)
+        else:
+            await update_creator_by_user_id(user_id, creator)
+
+
+class TieBaJsonStoreImplement(AbstractStore):
+    json_store_path: str = "data/tieba/json"
+    words_store_path: str = "data/tieba/words"
     lock = asyncio.Lock()
     file_count:int=calculate_number_of_files(json_store_path)
     WordCloud = words.AsyncWordCloudGenerator()
-
-
 
     def make_save_file_name(self, store_type: str) -> (str,str):
         """
@@ -190,7 +210,6 @@ class KuaishouJsonStoreImplement(AbstractStore):
                     await self.WordCloud.generate_word_frequency_and_cloud(save_data, words_file_name_prefix)
                 except:
                     pass
-
     async def store_content(self, content_item: Dict):
         """
         content JSON storage implementation
@@ -215,7 +234,7 @@ class KuaishouJsonStoreImplement(AbstractStore):
 
     async def store_creator(self, creator: Dict):
         """
-        Kuaishou content JSON storage implementation
+        Xiaohongshu content JSON storage implementation
         Args:
             creator: creator dict
 
