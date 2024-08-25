@@ -9,7 +9,7 @@ from tenacity import RetryError, retry, stop_after_attempt, wait_fixed
 
 import config
 from base.base_crawler import AbstractApiClient
-from model.m_baidu_tieba import TiebaComment, TiebaNote
+from model.m_baidu_tieba import TiebaComment, TiebaCreator, TiebaNote
 from proxy.proxy_ip_pool import ProxyIpPool
 from tools import utils
 
@@ -272,8 +272,6 @@ class BaiduTieBaClient(AbstractApiClient):
                 current_page += 1
         return all_sub_comments
 
-
-
     async def get_notes_by_tieba_name(self, tieba_name: str, page_num: int) -> List[TiebaNote]:
         """
         根据贴吧名称获取帖子列表
@@ -287,3 +285,76 @@ class BaiduTieBaClient(AbstractApiClient):
         uri = f"/f?kw={tieba_name}&pn={page_num}"
         page_content = await self.get(uri, return_ori_content=True)
         return self._page_extractor.extract_tieba_note_list(page_content)
+
+    async def get_creator_info_by_url(self, creator_url: str) -> TiebaCreator:
+        """
+        根据创作者ID获取创作者信息
+        Args:
+            creator_url: 创作者主页URL
+
+        Returns:
+
+        """
+        page_content = await self.request(method="GET", url=creator_url, return_ori_content=True)
+        return self._page_extractor.extract_creator_info(page_content)
+
+    async def get_notes_by_creator(self, user_name: str, page_number: int) -> Dict:
+        """
+        根据创作者获取创作者的所有帖子
+        Args:
+            user_name:
+            page_number:
+
+        Returns:
+
+        """
+        uri = f"/home/get/getthread"
+        params = {
+            "un": user_name,
+            "pn": page_number,
+            "id": "utf-8",
+            "_": utils.get_current_timestamp()
+        }
+        return await self.get(uri, params=params)
+
+    async def get_all_notes_by_creator_user_name(self,
+                                                 user_name: str, crawl_interval: float = 1.0,
+                                                 callback: Optional[Callable] = None,
+                                                 max_note_count: int = 0) -> List[TiebaNote]:
+        """
+        根据创作者用户名获取创作者所有帖子
+        Args:
+            user_name: 创作者用户名
+            crawl_interval: 爬取一次笔记的延迟单位（秒）
+            callback: 一次笔记爬取结束后的回调函数，是一个awaitable类型的函数
+            max_note_count: 帖子最大获取数量，如果为0则获取所有
+
+        Returns:
+
+        """
+        result = []
+        notes_has_more = 1
+        page_number = 1
+        page_per_count = 20
+        total_get_count = 0
+        while notes_has_more == 1 and (max_note_count == 0 or total_get_count < max_note_count):
+            notes_res = await self.get_notes_by_creator(user_name, page_number)
+            if not notes_res or notes_res.get("no") != 0:
+                utils.logger.error(
+                    f"[WeiboClient.get_notes_by_creator] got user_name:{user_name} notes failed, notes_res: {notes_res}")
+                break
+            notes_data = notes_res.get("data")
+            notes_has_more = notes_data.get("has_more")
+            notes = notes_data["thread_list"]
+            utils.logger.info(
+                f"[WeiboClient.get_all_notes_by_creator] got user_name:{user_name} notes len : {len(notes)}")
+
+            note_detail_task = [self.get_note_by_id(note['thread_id']) for note in notes]
+            notes = await asyncio.gather(*note_detail_task)
+            if callback:
+                await callback(notes)
+            await asyncio.sleep(crawl_interval)
+            result.extend(notes)
+            page_number += 1
+            total_get_count += page_per_count
+        return result
