@@ -1,3 +1,14 @@
+# 声明：本代码仅供学习和研究目的使用。使用者应遵守以下原则：  
+# 1. 不得用于任何商业用途。  
+# 2. 使用时应遵守目标平台的使用条款和robots.txt规则。  
+# 3. 不得进行大规模爬取或对平台造成运营干扰。  
+# 4. 应合理控制请求频率，避免给目标平台带来不必要的负担。   
+# 5. 不得用于任何非法或不当的用途。
+#   
+# 详细许可条款请参阅项目根目录下的LICENSE文件。  
+# 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。  
+
+
 # 基础配置
 PLATFORM = "xhs"
 KEYWORDS = "编程副业,编程兼职" # 关键词搜索配置，以英文逗号分隔
@@ -46,17 +57,25 @@ MAX_CONCURRENCY_NUM = 1
 ENABLE_GET_IMAGES = False
 
 # 是否开启爬评论模式, 默认开启爬评论
-ENABLE_GET_COMMENTS = False
+ENABLE_GET_COMMENTS = True
 
 # 是否开启爬二级评论模式, 默认不开启爬二级评论
 # 老版本项目使用了 db, 则需参考 schema/tables.sql line 287 增加表字段
 ENABLE_GET_SUB_COMMENTS = False
 
-# 指定小红书需要爬虫的笔记ID列表
-XHS_SPECIFIED_ID_LIST = [
-    "6422c2750000000027000d88",
+# 已废弃⚠️⚠️⚠️指定小红书需要爬虫的笔记ID列表
+# 已废弃⚠️⚠️⚠️ 指定笔记ID笔记列表会因为缺少xsec_token和xsec_source参数导致爬取失败
+# XHS_SPECIFIED_ID_LIST = [
+#     "66fad51c000000001b0224b8",
+#     # ........................
+# ]
+
+# 指定小红书需要爬虫的笔记URL列表, 目前要携带xsec_token和xsec_source参数
+XHS_SPECIFIED_NOTE_URL_LIST = [
+    "https://www.xiaohongshu.com/explore/66fad51c000000001b0224b8?xsec_token=AB3rO-QopW5sgrJ41GwN01WCXh6yWPxjSoFI9D5JIMgKw=&xsec_source=pc_search"
     # ........................
 ]
+
 
 # 指定抖音需要爬取的ID列表
 DY_SPECIFIED_ID_LIST = [
