@@ -190,6 +190,7 @@ class XiaoHongShuClient(AbstractApiClient):
 
     async def get_note_by_keyword(
             self, keyword: str,
+            search_id: str = get_search_id(),
             page: int = 1, page_size: int = 20,
             sort: SearchSortType = SearchSortType.GENERAL,
             note_type: SearchNoteType = SearchNoteType.ALL
@@ -211,7 +212,7 @@ class XiaoHongShuClient(AbstractApiClient):
             "keyword": keyword,
             "page": page,
             "page_size": page_size,
-            "search_id": get_search_id(),
+            "search_id": search_id,
             "sort": sort.value,
             "note_type": note_type.value
         }
@@ -296,7 +297,7 @@ class XiaoHongShuClient(AbstractApiClient):
             note_id: 笔记ID
             crawl_interval: 爬取一次笔记的延迟单位（秒）
             callback: 一次笔记爬取结束后
-
+            max_count: 一次笔记爬取的最大评论数量
         Returns:
 
         """
